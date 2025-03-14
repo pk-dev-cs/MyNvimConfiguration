@@ -983,6 +983,49 @@ require('lazy').setup({
     --    - Treesitter + textobjects: https://github.com/nvim-treesitter/nvim-treesitter-textobjects
   },
 
+
+  {
+    'neovim/nvim-lspconfig',
+    dependencies = {
+      { 'williamboman/mason.nvim', opts = {} },
+      'williamboman/mason-lspconfig.nvim',
+      'WhoIsSethDaniel/mason-tool-installer.nvim',
+      'hrsh7th/cmp-nvim-lsp', -- Autocompletion support
+    },
+    config = function()
+      local lspconfig = require("lspconfig")
+      local capabilities = require('cmp_nvim_lsp').default_capabilities()
+
+      require("mason").setup()
+      require("mason-lspconfig").setup {
+        ensure_installed = { "omnisharp" }, -- Auto-install OmniSharp
+      }
+
+      lspconfig.omnisharp.setup({
+        cmd = { "omnisharp" }, -- Ensure OmniSharp is installed and in PATH
+        capabilities = capabilities,
+        on_attach = function(client, bufnr)
+          local opts = { noremap = true, silent = true, buffer = bufnr }
+          vim.keymap.set("n", "gd", vim.lsp.buf.definition, opts)
+          vim.keymap.set("n", "K", vim.lsp.buf.hover, opts)
+          vim.keymap.set("n", "<C-k>", vim.lsp.buf.signature_help, { buffer = bufnr, desc = "Show signature help" })
+          vim.keymap.set("n", "<leader>rn", vim.lsp.buf.rename, opts)
+          vim.keymap.set("n", "<leader>ca", vim.lsp.buf.code_action, opts)
+        end,
+        handlers = {
+          ["textDocument/definition"] = function(_, result, ...)
+            if vim.tbl_islist(result) and #result > 1 then
+              vim.lsp.util.jump_to_location(result[1])
+            else
+              vim.lsp.handlers["textDocument/definition"](_, result, ...)
+            end
+          end,
+        },
+      })
+    end,
+  },
+
+
   -- The following comments only work if you have downloaded the kickstart repo, not just copy pasted the
   -- init.lua. If you want these files, they are in the repository, so you can just download them and
   -- place them in the correct locations.
